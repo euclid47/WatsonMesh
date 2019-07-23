@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Security.Authentication;
-using System.Text;
 using System.Threading.Tasks;
 using WatsonTcp;
 
@@ -71,8 +67,8 @@ namespace Watson
         {
             get
             {
-                if (_TcpClient == null) return false;
-                return _TcpClient.Connected;
+                if (_tcpClient == null) return false;
+                return _tcpClient.Connected;
             }
         }
 
@@ -80,9 +76,9 @@ namespace Watson
 
         #region Private-Members
 
-        private bool _Disposed = false; 
-        private MeshSettings _Settings; 
-        private WatsonTcpClient _TcpClient;  
+        private bool _disposed = false; 
+        private readonly MeshSettings _settings; 
+        private WatsonTcpClient _tcpClient;  
 
         #endregion
 
@@ -95,11 +91,8 @@ namespace Watson
         /// <param name="peer">Peer.</param>
         public MeshClient(MeshSettings settings, Peer peer)
         {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (peer == null) throw new ArgumentNullException(nameof(peer));
-
-            _Settings = settings;
-            Peer = peer;
+			_settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            Peer = peer ?? throw new ArgumentNullException(nameof(peer));
         }
 
         #endregion
@@ -122,7 +115,7 @@ namespace Watson
         {
             if (Peer.Ssl)
             {
-                _TcpClient = new WatsonTcpClient(
+                _tcpClient = new WatsonTcpClient(
                     Peer.Ip,
                     Peer.Port,
                     Peer.PfxCertificateFile,
@@ -130,27 +123,27 @@ namespace Watson
             }
             else
             {
-                _TcpClient = new WatsonTcpClient(
+                _tcpClient = new WatsonTcpClient(
                     Peer.Ip,
                     Peer.Port);
             }
 
-            _TcpClient.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
-            _TcpClient.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
-            _TcpClient.ReadDataStream = _Settings.ReadDataStream;
-            _TcpClient.ReadStreamBufferSize = _Settings.ReadStreamBufferSize;
+            _tcpClient.AcceptInvalidCertificates = _settings.AcceptInvalidCertificates; 
+            _tcpClient.MutuallyAuthenticate = _settings.MutuallyAuthenticate;
+            _tcpClient.ReadDataStream = _settings.ReadDataStream;
+            _tcpClient.ReadStreamBufferSize = _settings.ReadStreamBufferSize;
 
-            _TcpClient.AuthenticationRequested = MeshClientAuthenticationRequested;
-            _TcpClient.AuthenticationSucceeded = MeshClientAuthenticationSucceeded;
-            _TcpClient.AuthenticationFailure = MeshClientAuthenticationFailure;
-            _TcpClient.ServerConnected = MeshClientServerConnected;
-            _TcpClient.ServerDisconnected = MeshClientServerDisconnected;
-            _TcpClient.StreamReceived = MeshClientStreamReceived;
-            _TcpClient.MessageReceived = MeshClientMessageReceived;
+            _tcpClient.AuthenticationRequested = MeshClientAuthenticationRequested;
+            _tcpClient.AuthenticationSucceeded = MeshClientAuthenticationSucceeded;
+            _tcpClient.AuthenticationFailure = MeshClientAuthenticationFailure;
+            _tcpClient.ServerConnected = MeshClientServerConnected;
+            _tcpClient.ServerDisconnected = MeshClientServerDisconnected;
+            _tcpClient.StreamReceived = MeshClientStreamReceived;
+            _tcpClient.MessageReceived = MeshClientMessageReceived;
 
             try
             {
-                _TcpClient.Start();
+                _tcpClient.Start();
             }
             catch (Exception)
             {
@@ -169,7 +162,7 @@ namespace Watson
              
             try
             {
-                return await _TcpClient.SendAsync(data);
+                return await _tcpClient.SendAsync(data);
             }
             catch (Exception)
             {  
@@ -191,7 +184,7 @@ namespace Watson
             try
             { 
                 stream.Seek(0, SeekOrigin.Begin);
-                return await _TcpClient.SendAsync(contentLength, stream);
+                return await _tcpClient.SendAsync(contentLength, stream);
             }
             catch (Exception)
             { 
@@ -205,23 +198,23 @@ namespace Watson
 
         protected virtual void Dispose(bool disposing)
         { 
-            if (_Disposed)
+            if (_disposed)
             {
                 return;
             }
 
             if (disposing)
             {
-                if (_TcpClient != null) _TcpClient.Dispose();
+                if (_tcpClient != null) _tcpClient.Dispose();
             }
 
-            _Disposed = true;
+            _disposed = true;
         }
          
         private string MeshClientAuthenticationRequested()
         {
             if (AuthenticationRequested != null) return AuthenticationRequested();
-            if (!String.IsNullOrEmpty(_Settings.PresharedKey)) return _Settings.PresharedKey;
+            if (!string.IsNullOrEmpty(_settings.PresharedKey)) return _settings.PresharedKey;
             else throw new AuthenticationException("Cannot authenticate using supplied preshared key to peer " + Peer.ToString());
         }
 
@@ -288,13 +281,14 @@ namespace Watson
 
         private void ReconnectToServer()
         {
-            if (!_Settings.AutomaticReconnect) return;
+            if (!_settings.AutomaticReconnect)
+	            return;
 
             while (true)
             { 
                 try
                 {
-                    Task.Delay(_Settings.ReconnectIntervalMs).Wait();
+                    Task.Delay(_settings.ReconnectIntervalMs).Wait();
                     Start(); 
                     break;
                 }

@@ -104,9 +104,9 @@ namespace Watson
         /// <param name="data">The data being transmitted.</param>
         public Message(string sourceIp, int sourcePort, string recipientIp, int recipientPort, int? timeoutMs, bool syncRequest, bool syncResponse, MessageType msgType, byte[] data)
         {
-            if (String.IsNullOrEmpty(sourceIp)) throw new ArgumentNullException(nameof(sourceIp));
+            if (string.IsNullOrEmpty(sourceIp)) throw new ArgumentNullException(nameof(sourceIp));
             if (sourcePort < 0) throw new ArgumentException("Source port must be zero or greater.");
-            if (String.IsNullOrEmpty(recipientIp)) throw new ArgumentNullException(nameof(recipientIp));
+            if (string.IsNullOrEmpty(recipientIp)) throw new ArgumentNullException(nameof(recipientIp));
             if (recipientPort < 0) throw new ArgumentException("Recipient port must be zero or greater.");
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
 
@@ -146,9 +146,9 @@ namespace Watson
         /// <param name="stream">The stream from which message data should be read.</param>
         public Message(string sourceIp, int sourcePort, string recipientIp, int recipientPort, int? timeoutMs, bool syncRequest, bool syncResponse, MessageType msgType, long contentLength, Stream stream)
         {
-            if (String.IsNullOrEmpty(sourceIp)) throw new ArgumentNullException(nameof(sourceIp));
+            if (string.IsNullOrEmpty(sourceIp)) throw new ArgumentNullException(nameof(sourceIp));
             if (sourcePort < 0) throw new ArgumentException("Source port must be zero or greater.");
-            if (String.IsNullOrEmpty(recipientIp)) throw new ArgumentNullException(nameof(recipientIp));
+            if (string.IsNullOrEmpty(recipientIp)) throw new ArgumentNullException(nameof(recipientIp));
             if (recipientPort < 0) throw new ArgumentException("Recipient port must be zero or greater.");
             if (contentLength < 1) throw new ArgumentException("Content length must be at least one byte.");
             if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -207,9 +207,9 @@ namespace Watson
 
             foreach (string curr in headerVals)
             {
-                if (!String.IsNullOrEmpty(curr)) curr.TrimEnd(Environment.NewLine.ToCharArray());
-                if (!String.IsNullOrEmpty(curr)) curr.Trim();
-                if (String.IsNullOrEmpty(curr)) continue;
+                if (!string.IsNullOrEmpty(curr)) curr.TrimEnd(Environment.NewLine.ToCharArray());
+                if (!string.IsNullOrEmpty(curr)) curr.Trim();
+                if (string.IsNullOrEmpty(curr)) continue;
 
                 string[] currHeader = curr.Split(':');
 
@@ -307,9 +307,9 @@ namespace Watson
 
             foreach (string curr in headerVals)
             {
-                if (!String.IsNullOrEmpty(curr)) curr.TrimEnd(Environment.NewLine.ToCharArray());
-                if (!String.IsNullOrEmpty(curr)) curr.Trim();
-                if (String.IsNullOrEmpty(curr)) continue;
+                if (!string.IsNullOrEmpty(curr)) curr.TrimEnd(Environment.NewLine.ToCharArray());
+                if (!string.IsNullOrEmpty(curr)) curr.Trim();
+                if (string.IsNullOrEmpty(curr)) continue;
 
                 string[] currHeader = curr.Split(':');
 
@@ -436,7 +436,7 @@ namespace Watson
         { 
             string header = "";
 
-            if (!String.IsNullOrEmpty(Id)) header += "Id: " + Id + Environment.NewLine;
+            if (!string.IsNullOrEmpty(Id)) header += "Id: " + Id + Environment.NewLine;
             header += "SyncRequest: " + SyncRequest + Environment.NewLine;
             header += "SyncResponse: " + SyncResponse + Environment.NewLine;
             header += "TimeoutMs: " + TimeoutMs.ToString() + Environment.NewLine;
@@ -453,7 +453,7 @@ namespace Watson
         /// <summary>
         /// Create a human-readable representation of the object.
         /// </summary>
-        /// <returns>String.</returns>
+        /// <returns>string.</returns>
         public override string ToString()
         {
             string ret = "";

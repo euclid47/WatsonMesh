@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Watson
 {
@@ -11,8 +7,17 @@ namespace Watson
     /// </summary>
     public class MeshSettings
     {
-        #region Public-Members
-         
+		#region Public-Members
+		/// <summary>
+		/// Allow library to write to console
+		/// </summary>
+		public bool EnableConsoleMessages { get; set; }
+
+		/// <summary>
+		/// Bind both peers on connect.
+		/// </summary>
+	    public bool AutomaticBindPeer { get; set; }
+
         /// <summary>
         /// Indicate whether or not to automatically reconnect when a connection is severed.
         /// </summary>
@@ -81,7 +86,8 @@ namespace Watson
             PresharedKey = null; 
             AcceptInvalidCertificates = true;
             MutuallyAuthenticate = false; 
-            ReadDataStream = true; 
+            ReadDataStream = true;
+			AutomaticBindPeer = true;
 
             _ReadStreamBufferSize = 65536;
         }

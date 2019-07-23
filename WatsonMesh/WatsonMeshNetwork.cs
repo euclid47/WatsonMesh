@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,7 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
-
+using WatsonMesh;
+using WatsonMesh.Fuck;
 using WatsonTcp;
 
 namespace Watson
@@ -15,7 +17,7 @@ namespace Watson
     /// <summary>
     /// Watson mesh networking library.
     /// </summary>
-    public class WatsonMesh
+    public class WatsonMeshNetwork
     {
         #region Public-Members
 
@@ -52,6 +54,11 @@ namespace Watson
         /// Your function must return a SyncResponse object.
         /// </summary>
         public Func<Peer, long, Stream, SyncResponse> SyncStreamReceived = null;
+
+		/// <summary>
+		/// Client requests connection to mesh.
+		/// </summary>
+		public Func<ConnectRequest, bool> PeerConnectRequest = null;
  
         #endregion
 
@@ -81,13 +88,10 @@ namespace Watson
         /// </summary>
         /// <param name="settings">Settings for the mesh network.</param>
         /// <param name="self">Local server configuration.</param>
-        public WatsonMesh(MeshSettings settings, Peer self)
+        public WatsonMeshNetwork(MeshSettings settings, Peer self)
         {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (self == null) throw new ArgumentNullException(nameof(self));
-
-            _Settings = settings;
-            _Self = self;
+			_Settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _Self = self ?? throw new ArgumentNullException(nameof(self));
 
             _PeerLock = new object();
             _Peers = new List<Peer>();
@@ -146,7 +150,7 @@ namespace Watson
         /// <returns>True if healthy.</returns>
         public bool IsHealthy(string ip, int port)
         {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             MeshClient currClient = GetMeshClientByIpPort(ip, port);
@@ -174,24 +178,21 @@ namespace Watson
 
             lock (_ClientsLock)
             {
-                bool exists = _Clients.Any(c => c.Peer.Ip.Equals(peer.Ip) && c.Peer.Port.Equals(peer.Port));
-                if (exists)
-                {
-                    return;
-                }
-                else
-                {
-                    MeshClient currClient = new MeshClient(_Settings, peer); 
-                    currClient.ServerConnected = MeshClientServerConnected;
-                    currClient.ServerDisconnected = MeshClientServerDisconnected;
-                    currClient.MessageReceived = MeshClientMessageReceived;
-                    currClient.StreamReceived = MeshClientStreamReceived;
-                     
-                    Task.Run(() => currClient.Start());
+				if (_Clients.Any(c => c.Peer.Ip.Equals(peer.Ip) && c.Peer.Port.Equals(peer.Port)))
+					return;
 
-                    _Clients.Add(currClient);
-                } 
-            }
+				MeshClient currClient = new MeshClient(_Settings, peer)
+	            {
+		            ServerConnected = MeshClientServerConnected,
+		            ServerDisconnected = MeshClientServerDisconnected,
+		            MessageReceived = MeshClientMessageReceived,
+		            StreamReceived = MeshClientStreamReceived
+	            };
+
+	            Task.Factory.StartNew(() => currClient.Start());
+
+	            _Clients.Add(currClient);
+			}
         }
 
         /// <summary>
@@ -307,7 +308,7 @@ namespace Watson
         /// <returns>True if successful.</returns>
         public bool SendAsync(string ip, int port, byte[] data)
         {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
 
@@ -326,7 +327,7 @@ namespace Watson
         /// <returns>True if successful.</returns>
         public bool SendAsync(string ip, int port, long contentLength, Stream stream)
         {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
             if (contentLength < 1) throw new ArgumentException("Content length must be at least one byte.");
             if (stream == null || !stream.CanRead) throw new ArgumentException("Cannot read from supplied stream.");
@@ -359,7 +360,7 @@ namespace Watson
         public bool SendSync(string ip, int port, int timeoutMs, byte[] data, out byte[] response)
         {
             response = null;
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be zero or greater.");
             if (data == null || data.Length < 1) throw new ArgumentNullException(nameof(data));
@@ -399,7 +400,7 @@ namespace Watson
         {
             responseLength = 0;
             responseStream = null;
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
             if (timeoutMs < 1) throw new ArgumentException("Timeout must be zero or greater.");
             if (contentLength < 1) throw new ArgumentException("Content length must be at least one byte.");
@@ -440,7 +441,7 @@ namespace Watson
         /// <param name="ipPort">IP address and port of the remote client, of the form IP:port.</param>
         public void DisconnectClient(string ipPort)
         {
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
+            if (string.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
             _Server.DisconnectClient(ipPort);
         }
 
@@ -450,7 +451,7 @@ namespace Watson
 
         private Peer GetPeerByIpPort(string ip, int port)
         {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             lock (_PeerLock)
@@ -463,7 +464,7 @@ namespace Watson
 
         private MeshClient GetMeshClientByIpPort(string ip, int port)
         {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             lock (_ClientsLock)
@@ -590,13 +591,15 @@ namespace Watson
         #region Private-MeshServer-Callbacks
 
         private bool MeshServerClientConnected(string ipPort)
-        { 
+        {
+	        Console.WriteLine($"MeshServerClientConnected: {ipPort}.");
             return true;
         }
          
         private bool MeshServerClientDisconnected(string ipPort)
-        { 
-            return true;
+        {
+	        Console.WriteLine($"MeshServerClientDisconnected: {ipPort}.");
+			return true;
         }
 
         private bool MeshServerMessageReceived(string ipPort, byte[] data)
@@ -649,12 +652,20 @@ namespace Watson
         { 
             try
             {
-                Message currMsg = new Message(stream, _Settings.ReadStreamBufferSize); 
+	            Message currMsg = new Message(stream, _Settings.ReadStreamBufferSize);
+	            Peer currPeer = GetPeerByIpPort(currMsg.SourceIp, currMsg.SourcePort);
 
-                Peer currPeer = GetPeerByIpPort(currMsg.SourceIp, currMsg.SourcePort);
-                if (currPeer == null || currPeer == default(Peer))
-                { 
-                    return false;
+                if (currPeer is null && _Settings.AutomaticBindPeer)
+                {
+	                try
+	                {
+		                currMsg.DataStream.Seek(0, SeekOrigin.Begin);
+						return PeerConnectRequest(JsonConvert.DeserializeObject<ConnectRequest>(currMsg.DataStream.StreamToString()));
+					}
+	                catch (Exception e)
+	                {
+						return false;
+	                }
                 }
                  
                 if (currMsg.SyncRequest)
@@ -804,7 +815,7 @@ namespace Watson
 
         private bool AddSyncRequest(string id, int timeoutMs)
         {
-            if (String.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
+            if (string.IsNullOrEmpty(id)) throw new ArgumentNullException(nameof(id));
             if (_SyncRequests.ContainsKey(id)) return false;
             return _SyncRequests.TryAdd(id, DateTime.Now.AddMilliseconds(timeoutMs));
         }

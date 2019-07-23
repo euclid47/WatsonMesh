@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WatsonTcp;
 
 namespace Watson
@@ -41,9 +36,9 @@ namespace Watson
 
         #region Private-Members
          
-        private MeshSettings _Settings;
-        private Peer _Self;
-        private WatsonTcpServer _TcpServer;
+        private readonly MeshSettings _settings;
+        private Peer _self;
+        private WatsonTcpServer _tcpServer;
 
         #endregion
 
@@ -56,11 +51,8 @@ namespace Watson
         /// <param name="self">Node details for the local node.</param>
         public MeshServer(MeshSettings settings, Peer self)
         {
-            if (settings == null) throw new ArgumentNullException(nameof(settings));
-            if (self == null) throw new ArgumentNullException(nameof(self));
-
-            _Settings = settings;
-            _Self = self;
+			_settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _self = self ?? throw new ArgumentNullException(nameof(self));
         }
 
         #endregion
@@ -72,33 +64,22 @@ namespace Watson
         /// </summary>
         public void Start()
         {
-            if (_Self.Ssl)
-            {
-                _TcpServer = new WatsonTcpServer(
-                    _Self.Ip,
-                    _Self.Port,
-                    _Self.PfxCertificateFile,
-                    _Self.PfxCertificatePassword);
-            }
-            else
-            {
-                _TcpServer = new WatsonTcpServer(
-                    _Self.Ip,
-                    _Self.Port);
-            }
+	        _tcpServer = _self.Ssl 
+		        ? new WatsonTcpServer(_self.Ip, _self.Port, _self.PfxCertificateFile, _self.PfxCertificatePassword)
+				: new WatsonTcpServer(_self.Ip, _self.Port);
 
-            _TcpServer.AcceptInvalidCertificates = _Settings.AcceptInvalidCertificates; 
-            _TcpServer.MutuallyAuthenticate = _Settings.MutuallyAuthenticate;
-            _TcpServer.PresharedKey = _Settings.PresharedKey;
-            _TcpServer.ReadDataStream = _Settings.ReadDataStream;
-            _TcpServer.ReadStreamBufferSize = _Settings.ReadStreamBufferSize;
+            _tcpServer.AcceptInvalidCertificates = _settings.AcceptInvalidCertificates; 
+            _tcpServer.MutuallyAuthenticate = _settings.MutuallyAuthenticate;
+            _tcpServer.PresharedKey = _settings.PresharedKey;
+            _tcpServer.ReadDataStream = _settings.ReadDataStream;
+            _tcpServer.ReadStreamBufferSize = _settings.ReadStreamBufferSize;
 
-            _TcpServer.ClientConnected = MeshServerClientConnected;
-            _TcpServer.ClientDisconnected = MeshServerClientDisconnected;
-            _TcpServer.MessageReceived = MeshServerMessageReceived;
-            _TcpServer.StreamReceived = MeshServerStreamReceived;
+            _tcpServer.ClientConnected = MeshServerClientConnected;
+            _tcpServer.ClientDisconnected = MeshServerClientDisconnected;
+            _tcpServer.MessageReceived = MeshServerMessageReceived;
+            _tcpServer.StreamReceived = MeshServerStreamReceived;
 
-            _TcpServer.Start();
+            _tcpServer.Start();
         }
 
         /// <summary>
@@ -108,8 +89,11 @@ namespace Watson
         public void DisconnectClient(string ipPort)
         {
             Console.WriteLine("DisconnectClient " + ipPort);
-            if (String.IsNullOrEmpty(ipPort)) throw new ArgumentNullException(nameof(ipPort));
-            _TcpServer.DisconnectClient(ipPort);
+
+            if (string.IsNullOrEmpty(ipPort))
+	            throw new ArgumentNullException(nameof(ipPort));
+
+            _tcpServer.DisconnectClient(ipPort);
         }
 
         #endregion

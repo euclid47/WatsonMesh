@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Watson;
+using WatsonMesh.Fuck;
 
 namespace TestNetCore
 {
@@ -14,7 +15,7 @@ namespace TestNetCore
         static int _Port;
         static MeshSettings _Settings;
         static Peer _Self;
-        static WatsonMesh _Mesh;
+        static WatsonMeshNetwork _Mesh;
 
         static bool _RunForever = true;
 
@@ -34,15 +35,16 @@ namespace TestNetCore
 
             _Self = new Peer(_Ip, _Port);
 
-            _Mesh = new WatsonMesh(_Settings, _Self);
+            _Mesh = new WatsonMeshNetwork(_Settings, _Self);
             _Mesh.PeerConnected = PeerConnected;
             _Mesh.PeerDisconnected = PeerDisconnected;
             _Mesh.AsyncMessageReceived = AsyncMessageReceived;
             _Mesh.SyncMessageReceived = SyncMessageReceived;
             _Mesh.AsyncStreamReceived = AsyncStreamReceived;
             _Mesh.SyncStreamReceived = SyncStreamReceived;
+	        _Mesh.PeerConnectRequest = PeerConnectRequest;
 
-            _Mesh.Start();
+			_Mesh.Start();
 
             while (_RunForever)
             {
@@ -105,11 +107,7 @@ namespace TestNetCore
                         break;
 
                     case "add":
-                        _Mesh.Add(
-                            new Peer(
-                                InputString("Peer IP:", "127.0.0.1", false),
-                                InputInteger("Peer port:", 8000, true, false),
-                                false));
+	                    Add();
                         break;
 
                     case "del":
@@ -150,7 +148,15 @@ namespace TestNetCore
             Console.WriteLine("  health      display if the mesh is healthy");
             Console.WriteLine("  nodehealth  display if a connection to a peer is healthy");
         }
-        
+
+	    static void Add()
+	    {
+		    var ipAddress = InputString("Peer IP:", "127.0.0.1", false);
+		    var port = InputInteger("Peer port:", 8000, true, false);
+		    var peer = new Peer(ipAddress, port, false);
+			_Mesh.Add(peer);
+	    }
+
         static void SendAsync()
         { 
             byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
@@ -171,7 +177,26 @@ namespace TestNetCore
             }
         }
 
-        static void SendSync()
+	    static void SendConnectRequest(Peer peer)
+	    {
+		    var currNode = JsonConvert.SerializeObject(new ConnectRequest {Ip = _Ip, Port = _Port});
+
+			byte[] inputBytes = Encoding.UTF8.GetBytes(currNode);
+			MemoryStream inputStream = new MemoryStream(inputBytes);
+		    inputStream.Seek(0, SeekOrigin.Begin);
+
+		    if (_Mesh.SendAsync(peer.Ip, peer.Port, inputBytes.Length, inputStream))
+		    {
+			    Console.WriteLine("Success");
+		    }
+		    else
+		    {
+			    Console.WriteLine("Failed");
+		    }
+	    }
+
+
+		static void SendSync()
         {
             byte[] inputBytes = Encoding.UTF8.GetBytes(InputString("Data:", "some data", false));
             MemoryStream inputStream = new MemoryStream(inputBytes);
@@ -238,7 +263,8 @@ namespace TestNetCore
         static bool PeerConnected(Peer peer)
         {
             Console.WriteLine("Peer " + peer.ToString() + " connected");
-            return true;
+	        SendConnectRequest(peer);
+			return true;
         }
 
         static bool PeerDisconnected(Peer peer)
@@ -282,7 +308,17 @@ namespace TestNetCore
             MemoryStream ms = new MemoryStream(respData);
             ms.Seek(0, SeekOrigin.Begin);
             return new SyncResponse(respData.Length, ms);
-        } 
+        }
+
+	    static bool PeerConnectRequest(ConnectRequest connectRequest)
+	    {
+		    if (!_Mesh.GetPeers().Any(x => x.Ip == connectRequest.Ip && x.Port == connectRequest.Port))
+		    {
+			    _Mesh.Add(new Peer(connectRequest.Ip, connectRequest.Port));
+		    }
+
+			return true;
+	    }
 
         static bool InputBoolean(string question, bool yesDefault)
         {

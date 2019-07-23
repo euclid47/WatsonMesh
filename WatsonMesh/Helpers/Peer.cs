@@ -68,7 +68,7 @@ namespace Watson
         /// <param name="port">Port number of the peer.</param> 
         public Peer(string ip, int port)
         {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             Ip = ip;
@@ -88,7 +88,7 @@ namespace Watson
         /// <param name="ssl">True if using SSL.</param>
         public Peer(string ip, int port, bool ssl)
         {
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
 
             Ip = ip;
@@ -110,7 +110,7 @@ namespace Watson
         /// <param name="pfxCertPass">Password for PFX SSL certificate file.</param>
         public Peer(string ip, int port, bool ssl, string pfxCertFile, string pfxCertPass)
         { 
-            if (String.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
+            if (string.IsNullOrEmpty(ip)) throw new ArgumentNullException(nameof(ip));
             if (port < 0) throw new ArgumentException("Port must be zero or greater.");
              
             Ip = ip;
@@ -129,7 +129,7 @@ namespace Watson
         /// <summary>
         /// Human-readable String representation of the object.
         /// </summary>
-        /// <returns>String.</returns>
+        /// <returns>string.</returns>
         public override string ToString()
         {
             string ret = "[";
